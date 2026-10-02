@@ -17,3 +17,6 @@ temp_audio/
 # Archivos de sistema operativo
 .DS_Store
 Thumbs.db
+
+# Base de datos
+*.db
