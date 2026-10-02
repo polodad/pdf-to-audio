@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "AudioIA - Lector de Textos",
+    "version": "1.0",
+    "description": "Selecciona cualquier texto en la web y escúchalo con una voz neuronal de altísima calidad.",
+    "permissions": [
+      "contextMenus",
+      "activeTab",
+      "scripting"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "host_permissions": [
+      "http://localhost:8000/*"
+    ]
+  }
