@@ -28,18 +28,63 @@
                     <span class="text-2xl">🎧</span>
                     <span class="font-bold text-xl text-indigo-600">AudioIA</span>
                 </div>
-                <div class="hidden md:flex space-x-8">
-                    <a href="#convertir" class="text-slate-600 hover:text-indigo-600 font-medium">Convertir PDF</a>
-                    <a href="#extension" class="text-slate-600 hover:text-indigo-600 font-medium">Extensión Web</a>
-                    <a href="#precios" class="text-slate-600 hover:text-indigo-600 font-medium">Precios</a>
+                
+                <div id="auth-buttons" class="flex items-center space-x-4">
+                    <button onclick="document.getElementById('loginModal').classList.remove('hidden')" class="text-slate-600 hover:text-indigo-600 font-medium">Iniciar Sesión</button>
+                    <button onclick="document.getElementById('registerModal').classList.remove('hidden')" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Registrarse Gratis</button>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm font-semibold bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full">3 Créditos Gratis</span>
-                    <button class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Iniciar Sesión</button>
+                
+                <div id="user-info" class="hidden flex items-center space-x-4">
+                    <span class="text-sm font-semibold bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full" id="credits-display">0 Créditos</span>
+                    <span class="text-slate-600 font-medium text-sm" id="user-email"></span>
+                    <button onclick="logout()" class="text-red-500 hover:text-red-700 text-sm font-medium">Salir</button>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- Modals -->
+    <!-- Login -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-md mx-4 relative">
+            <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700">✕</button>
+            <h2 class="text-2xl font-bold mb-6 text-center">Bienvenido de nuevo</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="loginEmail" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div id="loginError" class="text-red-500 text-sm hidden"></div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register -->
+    <div id="registerModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-md mx-4 relative">
+            <button onclick="document.getElementById('registerModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700">✕</button>
+            <h2 class="text-2xl font-bold mb-6 text-center">Crea tu cuenta</h2>
+            <p class="text-center text-slate-500 text-sm mb-6">Recibe 5 créditos gratis para empezar.</p>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="registerEmail" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                    <input type="password" id="registerPassword" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div id="registerError" class="text-red-500 text-sm hidden"></div>
+                <div id="registerSuccess" class="text-green-500 text-sm hidden">¡Cuenta creada! Por favor, inicia sesión.</div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition">Registrarse</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Hero / Converter Section -->
     <section id="convertir" class="pt-32 pb-20 px-4">
@@ -53,6 +98,10 @@
         </div>
 
         <div class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100">
+            <div id="authWarning" class="hidden mb-6 p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-xl text-center text-sm font-medium">
+                Debes iniciar sesión para poder convertir documentos.
+            </div>
+
             <form id="uploadForm" class="space-y-6">
                 <div class="border-2 border-dashed border-indigo-200 bg-indigo-50/50 rounded-2xl p-10 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer relative">
                     <input type="file" id="pdfFile" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
@@ -61,30 +110,25 @@
                             <svg class="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         </div>
                         <span id="fileName" class="text-lg text-slate-700 font-semibold">Haz clic o arrastra tu PDF aquí</span>
-                        <span class="text-sm text-slate-500 mt-1">Máximo 50 páginas en plan gratuito</span>
+                        <span class="text-sm text-slate-500 mt-1">Costo: 1 crédito por documento</span>
                     </div>
                 </div>
                 
                 <button type="submit" id="submitBtn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all flex justify-center items-center text-lg">
-                    Convertir a Audio Mágico ✨
+                    Convertir a Audio (1 Crédito) ✨
                 </button>
             </form>
 
-            <!-- Loading State -->
             <div id="loadingIndicator" class="hidden mt-8 flex flex-col items-center">
                 <div class="loader mb-4"></div>
-                <p class="text-slate-600 font-medium text-center">Leyendo documento y sintetizando voz...<br><span class="text-sm text-slate-400 font-normal">Por favor, no cierres esta ventana.</span></p>
+                <p class="text-slate-600 font-medium text-center">Procesando y descontando crédito...<br><span class="text-sm text-slate-400 font-normal">Por favor, espera.</span></p>
             </div>
 
-            <!-- Result State -->
             <div id="resultContainer" class="hidden mt-8 bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">¡Tu audio está servido! 🎉</h3>
-                <audio id="audioPlayer" controls class="w-full mb-4 outline-none rounded-full shadow-sm">
-                    Tu navegador no soporta el elemento de audio.
-                </audio>
+                <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">¡Tu audio está listo! 🎉</h3>
+                <audio id="audioPlayer" controls class="w-full mb-4 outline-none rounded-full shadow-sm"></audio>
                 <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
-                    <a id="downloadLink" href="#" download="AudioIA_Documento.mp3" class="text-indigo-700 hover:text-indigo-800 font-semibold flex items-center justify-center bg-white px-6 py-3 rounded-xl shadow-sm border border-indigo-200 hover:border-indigo-300 transition-colors">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <a id="downloadLink" href="#" download="AudioIA_Documento.mp3" class="text-indigo-700 hover:text-indigo-800 font-semibold flex items-center justify-center bg-white px-6 py-3 rounded-xl shadow-sm border border-indigo-200">
                         Descargar MP3
                     </a>
                 </div>
@@ -94,169 +138,178 @@
         </div>
     </section>
 
-    <!-- Extension Feature Section -->
-    <section id="extension" class="py-24 bg-white border-y border-slate-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                <div>
-                    <span class="text-indigo-600 font-semibold tracking-wider uppercase text-sm">Novedad</span>
-                    <h2 class="text-4xl font-bold text-slate-900 mt-2 mb-6">Lee cualquier página web con nuestra extensión</h2>
-                    <p class="text-lg text-slate-600 mb-8">
-                        No te limites a los PDFs. Con la nueva extensión para Chrome y Firefox, puedes seleccionar cualquier texto largo en internet (artículos, correos, posts) y dejar que nuestra IA te lo lea mientras tú descansas la vista.
-                    </p>
-                    <ul class="space-y-4 mb-8">
-                        <li class="flex items-center text-slate-700">
-                            <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            Funciona en cualquier sitio web
-                        </li>
-                        <li class="flex items-center text-slate-700">
-                            <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            Integración con tu misma cuenta y créditos
-                        </li>
-                        <li class="flex items-center text-slate-700">
-                            <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            Reproductor flotante minimalista
-                        </li>
-                    </ul>
-                    <div class="flex gap-4">
-                        <button class="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition flex items-center">
-                            Añadir a Chrome
-                        </button>
-                        <button class="bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 transition flex items-center">
-                            Añadir a Firefox
-                        </button>
-                    </div>
+    <!-- Pricing Section (Static display) -->
+    <section id="precios" class="py-24 px-4 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-7xl mx-auto text-center">
+            <h2 class="text-4xl font-bold text-slate-900 mb-4">Planes de Créditos</h2>
+            <p class="text-lg text-slate-600 mb-12">Compra créditos para seguir convirtiendo.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                    <h3 class="text-xl font-bold text-slate-800">Recarga Básica</h3>
+                    <div class="mt-4 mb-6"><span class="text-4xl font-extrabold">$5</span><span class="text-slate-500"> USD</span></div>
+                    <p class="mb-6">Obtén 50 créditos (50 documentos o selecciones largas).</p>
+                    <button onclick="comprarPlan('credits_50')" class="w-full bg-slate-100 text-slate-800 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Comprar con Stripe</button>
                 </div>
-                <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-                    <div class="bg-slate-100 p-4 border-b border-slate-200 flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                        <div class="bg-white px-3 py-1 rounded text-xs text-slate-500 ml-4 w-full flex-1">wikipedia.org</div>
-                    </div>
-                    <div class="p-8 bg-white h-80 relative">
-                        <p class="bg-indigo-100 text-slate-800 rounded px-2 py-1 inline">La Inteligencia artificial es un campo de la informática...</p>
-                        <br><br>
-                        <p class="text-slate-400">...que se centra en la creación de sistemas capaces de aprender y razonar como un ser humano.</p>
-                        
-                        <!-- Mockup of extension player -->
-                        <div class="absolute bottom-6 right-6 bg-white p-4 rounded-xl shadow-lg border border-slate-200 flex flex-col gap-2">
-                            <div class="text-sm"><strong>Audio IA</strong> 🎧 <span class="text-slate-500 text-xs ml-2">Reproduciendo...</span></div>
-                            <div class="h-1 bg-indigo-100 rounded-full w-48"><div class="h-full bg-indigo-500 rounded-full w-1/3"></div></div>
-                        </div>
-                    </div>
+                <div class="bg-indigo-600 rounded-3xl p-8 shadow-xl text-white">
+                    <h3 class="text-xl font-bold">Plan Ilimitado (Suscripción)</h3>
+                    <div class="mt-4 mb-6"><span class="text-4xl font-extrabold">$9</span><span class="text-indigo-200">/mes</span></div>
+                    <p class="mb-6">Créditos ilimitados y voces premium exclusivas.</p>
+                    <button onclick="comprarPlan('pro_subscription')" class="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition">Suscribirse ahora</button>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- Pricing Section -->
-    <section id="precios" class="py-24 px-4 bg-slate-50">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-slate-900 mb-4">Planes simples y transparentes</h2>
-                <p class="text-lg text-slate-600">Empieza gratis, mejora cuando lo necesites.</p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <!-- Free -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-xl font-bold text-slate-800">Básico</h3>
-                    <div class="mt-4 mb-6"><span class="text-4xl font-extrabold">$0</span><span class="text-slate-500">/mes</span></div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 5 conversiones / mes</li>
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> PDF hasta 10 páginas</li>
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Voces estándar</li>
-                    </ul>
-                    <button class="w-full bg-slate-100 text-slate-800 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Regístrate Gratis</button>
-                </div>
-                
-                <!-- Pro -->
-                <div class="bg-indigo-600 rounded-3xl p-8 shadow-xl shadow-indigo-200 relative transform md:-translate-y-4">
-                    <div class="absolute top-0 right-8 transform -translate-y-1/2">
-                        <span class="bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Más Popular</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Pro</h3>
-                    <div class="mt-4 mb-6"><span class="text-4xl font-extrabold text-white">$9</span><span class="text-indigo-200">/mes</span></div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center text-indigo-100"><svg class="w-5 h-5 text-indigo-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 100 conversiones / mes</li>
-                        <li class="flex items-center text-indigo-100"><svg class="w-5 h-5 text-indigo-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> PDFs ilimitados</li>
-                        <li class="flex items-center text-white font-semibold"><svg class="w-5 h-5 text-indigo-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Extensión para Navegador</li>
-                        <li class="flex items-center text-indigo-100"><svg class="w-5 h-5 text-indigo-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Voces Premium de IA</li>
-                    </ul>
-                    <button class="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition">Suscribirse ahora</button>
-                </div>
-                
-                <!-- Pay as you go -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-xl font-bold text-slate-800">Paquetes de Créditos</h3>
-                    <div class="mt-4 mb-6"><span class="text-4xl font-extrabold">$5</span><span class="text-slate-500">/50 cr.</span></div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Compra lo que necesites</li>
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Los créditos no caducan</li>
-                        <li class="flex items-center text-slate-600"><svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Acceso a voces Premium</li>
-                    </ul>
-                    <button class="w-full bg-slate-100 text-slate-800 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Comprar Créditos</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-400 py-12 text-center">
-        <p class="mb-4">🎧 AudioIA - Haz que tus textos hablen.</p>
-        <p class="text-sm">© 2026 Todos los derechos reservados.</p>
-    </footer>
 
     <script>
+        // Lógica de Autenticación
+        let token = localStorage.getItem('token');
+
+        async function checkAuth() {
+            if (!token) {
+                document.getElementById('auth-buttons').classList.remove('hidden');
+                document.getElementById('user-info').classList.add('hidden');
+                document.getElementById('authWarning').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('auth-buttons').classList.add('hidden');
+                    document.getElementById('user-info').classList.remove('hidden');
+                    document.getElementById('authWarning').classList.add('hidden');
+                    document.getElementById('user-email').innerText = data.email;
+                    document.getElementById('credits-display').innerText = data.credits + ' Créditos';
+                    
+                    // Guardar para uso de la extensión
+                    localStorage.setItem('credits', data.credits);
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            checkAuth();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const formData = new URLSearchParams();
+            formData.append('username', email); // OAuth2 expects 'username'
+            formData.append('password', password);
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                token = data.access_token;
+                localStorage.setItem('token', token);
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('loginError').classList.add('hidden');
+                checkAuth();
+            } else {
+                const err = document.getElementById('loginError');
+                err.innerText = data.detail;
+                err.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                document.getElementById('registerSuccess').classList.remove('hidden');
+                document.getElementById('registerError').classList.add('hidden');
+                setTimeout(() => {
+                    document.getElementById('registerModal').classList.add('hidden');
+                    document.getElementById('loginModal').classList.remove('hidden');
+                }, 1500);
+            } else {
+                const err = document.getElementById('registerError');
+                err.innerText = data.detail;
+                err.classList.remove('hidden');
+            }
+        });
+
+        checkAuth();
+
+        // Lógica de Subida de PDF
         const fileInput = document.getElementById('pdfFile');
         const fileName = document.getElementById('fileName');
         const form = document.getElementById('uploadForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const resultContainer = document.getElementById('resultContainer');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const downloadLink = document.getElementById('downloadLink');
-        const errorMessage = document.getElementById('errorMessage');
-
+        
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 fileName.textContent = '📄 ' + e.target.files[0].name;
-                fileName.classList.add('text-indigo-600');
             } else {
                 fileName.textContent = 'Haz clic o arrastra tu PDF aquí';
-                fileName.classList.remove('text-indigo-600');
             }
         });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!token) {
+                document.getElementById('loginModal').classList.remove('hidden');
+                return;
+            }
             
             const file = fileInput.files[0];
             if (!file) return;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const resultContainer = document.getElementById('resultContainer');
 
             errorMessage.classList.add('hidden');
             resultContainer.classList.add('hidden');
             loadingIndicator.classList.remove('hidden');
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            submitBtn.innerHTML = 'Generando...';
 
             const formData = new FormData();
             formData.append('file', file);
 
             try {
-                const response = await fetch('/api/convert', { method: 'POST', body: formData });
+                const response = await fetch('/api/convert', { 
+                    method: 'POST', 
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData 
+                });
                 const data = await response.json();
 
-                if (!response.ok) throw new Error(data.detail || 'Ocurrió un error al procesar el archivo.');
+                if (!response.ok) throw new Error(data.detail || 'Error al procesar.');
 
-                audioPlayer.src = data.audio_url;
-                downloadLink.href = data.audio_url;
+                document.getElementById('audioPlayer').src = data.audio_url;
+                document.getElementById('downloadLink').href = data.audio_url;
+                document.getElementById('credits-display').innerText = data.credits_remaining + ' Créditos';
                 
                 loadingIndicator.classList.add('hidden');
                 resultContainer.classList.remove('hidden');
-                
             } catch (error) {
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
@@ -264,9 +317,34 @@
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                submitBtn.innerHTML = 'Convertir a Audio Mágico ✨';
             }
         });
+
+        async function comprarPlan(plan) {
+            if (!token) {
+                document.getElementById('loginModal').classList.remove('hidden');
+                return;
+            }
+            try {
+                const res = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ plan: plan })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert('Error iniciando el pago: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor.');
+            }
+        }
     </script>
 </body>
 </html>

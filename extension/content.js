@@ -61,29 +61,39 @@ async function playTextWithAI(text) {
     document.getElementById('ia-audio-player').src = '';
 
     try {
-        // En un producto real de pago, aquí validarías la API Key del usuario o el token
-        const response = await fetch('http://localhost:8000/api/tts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text: text })
+        chrome.storage.local.get(['token'], async function(result) {
+            if (!result.token) {
+                document.getElementById('ia-status').innerText = 'Inicia sesión primero';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + result.token
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('ia-status').innerText = '¡Listo!';
+                    const audioEl = document.getElementById('ia-audio-player');
+                    audioEl.src = data.audio_url;
+                    audioEl.play();
+                    currentAudio = audioEl;
+                } else {
+                    document.getElementById('ia-status').innerText = 'Error';
+                    alert('Error: ' + data.detail);
+                }
+            } catch (e) {
+                document.getElementById('ia-status').innerText = 'Error de conexión';
+            }
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            document.getElementById('ia-status').innerText = '¡Listo!';
-            const audioEl = document.getElementById('ia-audio-player');
-            audioEl.src = data.audio_url;
-            audioEl.play();
-            currentAudio = audioEl;
-        } else {
-            document.getElementById('ia-status').innerText = 'Error';
-            alert('Error al generar el audio: ' + data.detail);
-        }
     } catch (e) {
-        document.getElementById('ia-status').innerText = 'Error de conexión';
-        console.error("Error contactando al servidor:", e);
+        document.getElementById('ia-status').innerText = 'Error';
     }
 }
