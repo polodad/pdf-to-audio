@@ -1,0 +1,19 @@
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Archivos de caché y temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de audio temporales
+temp_audio/
+*.mp3
+*.pdf
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
