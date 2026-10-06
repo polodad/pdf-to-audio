@@ -136,6 +136,36 @@
             
             <div id="errorMessage" class="hidden mt-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm font-medium text-center"></div>
         </div>
+        
+        <!-- Voice Cloning Section -->
+        <div class="max-w-xl mx-auto mt-12 bg-white p-8 rounded-3xl shadow-xl shadow-purple-100/50 border border-purple-100">
+            <h2 class="text-2xl font-bold text-center text-slate-800 mb-2">Clonación de Voz (Pro)</h2>
+            <p class="text-center text-slate-500 mb-6 text-sm">Sube un audio de 10 segundos de alguien hablando claro, escribe un texto, y haremos que lo diga con su misma voz.</p>
+            
+            <form id="cloneForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Texto a leer</label>
+                    <textarea id="cloneText" required rows="3" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none" placeholder="Escribe lo que quieres que diga la voz clonada..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Audio de referencia (.wav o .mp3)</label>
+                    <input type="file" id="cloneFile" accept="audio/*" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none" required>
+                </div>
+                <button type="submit" id="cloneSubmitBtn" class="w-full bg-purple-600 text-white font-bold py-4 rounded-xl hover:bg-purple-700 transition-all flex justify-center items-center text-lg">
+                    Clonar Voz (5 Créditos) 🎙️
+                </button>
+            </form>
+
+            <div id="cloneLoadingIndicator" class="hidden mt-8 flex flex-col items-center">
+                <div class="loader mb-4" style="border-top-color: #9333ea;"></div>
+                <p class="text-slate-600 font-medium text-center">Cargando inteligencia artificial y clonando...<br><span class="text-sm text-slate-400 font-normal">Esto puede tomar unos segundos.</span></p>
+            </div>
+
+            <div id="cloneResultContainer" class="hidden mt-8 bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                <audio id="cloneAudioPlayer" controls class="w-full mb-4 outline-none rounded-full shadow-sm"></audio>
+            </div>
+            <div id="cloneErrorMessage" class="hidden mt-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm font-medium text-center"></div>
+        </div>
     </section>
 
     <!-- Pricing Section (Static display) -->
@@ -345,6 +375,59 @@
                 alert('Error al conectar con el servidor.');
             }
         }
+
+        // Lógica de Clonación de Voz
+        const cloneForm = document.getElementById('cloneForm');
+        cloneForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!token) {
+                document.getElementById('loginModal').classList.remove('hidden');
+                return;
+            }
+            
+            const file = document.getElementById('cloneFile').files[0];
+            const text = document.getElementById('cloneText').value;
+            if (!file || !text) return;
+
+            const submitBtn = document.getElementById('cloneSubmitBtn');
+            const errorMessage = document.getElementById('cloneErrorMessage');
+            const loadingIndicator = document.getElementById('cloneLoadingIndicator');
+            const resultContainer = document.getElementById('cloneResultContainer');
+
+            errorMessage.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('text', text);
+
+            try {
+                const response = await fetch('/api/clone-voice', { 
+                    method: 'POST', 
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData 
+                });
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.detail || 'Error al procesar.');
+
+                document.getElementById('cloneAudioPlayer').src = data.audio_url;
+                document.getElementById('credits-display').innerText = data.credits_remaining + ' Créditos';
+                
+                loadingIndicator.classList.add('hidden');
+                resultContainer.classList.remove('hidden');
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
     </script>
 </body>
 </html>

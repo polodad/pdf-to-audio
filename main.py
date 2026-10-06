@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status, Request, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -295,11 +295,71 @@ async def convert_text_to_audio(
     credits_to_show = "∞" if current_user.email == "reyesmonroyemilianoleopoldo@gmail.com" else current_user.credits
     return {"audio_url": f"http://localhost:8000/api/audio/{file_id}.mp3", "credits_remaining": credits_to_show}
 
+# Variables globales para el modelo XTTS
+tts_model = None
+xtts_loaded = False
+
+@app.post("/api/clone-voice")
+async def clone_voice(
+    text: str = Form(...),
+    file: UploadFile = File(...),
+    current_user: UserDB = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    global tts_model, xtts_loaded
+    
+    if current_user.credits <= 4 and current_user.email != "reyesmonroyemilianoleopoldo@gmail.com":
+        raise HTTPException(status_code=402, detail="No tienes suficientes créditos (Cuesta 5 créditos).")
+        
+    try:
+        if not xtts_loaded:
+            import torch
+            from TTS.api import TTS
+            print("Cargando modelo XTTS en memoria (esto tomará unos segundos)...")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+            xtts_loaded = True
+            print("¡Modelo XTTS cargado exitosamente en", device, "!")
+    except ImportError:
+        raise HTTPException(status_code=501, detail="La clonación de voz está desactivada temporalmente (faltan librerías TTS).")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error cargando el modelo de IA: {str(e)}")
+
+    file_id = str(uuid.uuid4())
+    ref_audio_path = os.path.join(TEMP_AUDIO_DIR, f"{file_id}_ref.wav")
+    output_audio_path = os.path.join(TEMP_AUDIO_DIR, f"{file_id}_cloned.wav")
+    
+    with open(ref_audio_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+        
+    try:
+        # Generar audio clonado
+        tts_model.tts_to_file(
+            text=text, 
+            speaker_wav=ref_audio_path, 
+            language="es", 
+            file_path=output_audio_path
+        )
+        
+        if current_user.email != "reyesmonroyemilianoleopoldo@gmail.com":
+            current_user.credits -= 5
+            db.commit()
+    except Exception as e:
+        os.remove(ref_audio_path)
+        raise HTTPException(status_code=500, detail=f"Error en clonación: {str(e)}")
+        
+    os.remove(ref_audio_path)
+    
+    credits_to_show = "∞" if current_user.email == "reyesmonroyemilianoleopoldo@gmail.com" else current_user.credits
+    return {"audio_url": f"/api/audio/{file_id}_cloned.wav", "credits_remaining": credits_to_show}
+
 @app.get("/api/audio/{filename}")
 async def get_audio(filename: str):
     file_path = os.path.join(TEMP_AUDIO_DIR, filename)
     if os.path.exists(file_path):
-        return FileResponse(file_path, media_type="audio/mpeg")
+        media_type = "audio/wav" if filename.endswith(".wav") else "audio/mpeg"
+        return FileResponse(file_path, media_type=media_type)
     raise HTTPException(status_code=404, detail="Audio no encontrado")
 
 @app.get("/")
