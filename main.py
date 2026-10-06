@@ -208,7 +208,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.get("/api/me")
 def read_users_me(current_user: UserDB = Depends(get_current_user)):
-    return {"email": current_user.email, "credits": current_user.credits}
+    credits_to_show = "∞" if current_user.email == "reyesmonroyemilianoleopoldo@gmail.com" else current_user.credits
+    return {"email": current_user.email, "credits": credits_to_show}
 
 # --- RUTAS DE AUDIO ---
 def extract_text_from_pdf(file_path: str) -> str:
@@ -252,14 +253,19 @@ async def convert_pdf_to_audio(
         communicate = edge_tts.Communicate(text, voice)
         await communicate.save(audio_path)
         
-        current_user.credits -= 1
-        db.commit()
+        # Descontar crédito solo si no es el administrador
+        if current_user.email != "reyesmonroyemilianoleopoldo@gmail.com":
+            current_user.credits -= 1
+            db.commit()
     except Exception as e:
         os.remove(pdf_path)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
         
     os.remove(pdf_path)
-    return {"audio_url": f"/api/audio/{file_id}.mp3", "credits_remaining": current_user.credits}
+    
+    # Mostrar créditos infinitos para el admin en la respuesta
+    credits_to_show = "∞" if current_user.email == "reyesmonroyemilianoleopoldo@gmail.com" else current_user.credits
+    return {"audio_url": f"/api/audio/{file_id}.mp3", "credits_remaining": credits_to_show}
 
 @app.post("/api/tts")
 async def convert_text_to_audio(
@@ -281,12 +287,14 @@ async def convert_text_to_audio(
         communicate = edge_tts.Communicate(request.text, voice)
         await communicate.save(audio_path)
         
-        current_user.credits -= 1
-        db.commit()
+        if current_user.email != "reyesmonroyemilianoleopoldo@gmail.com":
+            current_user.credits -= 1
+            db.commit()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
         
-    return {"audio_url": f"http://localhost:8000/api/audio/{file_id}.mp3", "credits_remaining": current_user.credits}
+    credits_to_show = "∞" if current_user.email == "reyesmonroyemilianoleopoldo@gmail.com" else current_user.credits
+    return {"audio_url": f"http://localhost:8000/api/audio/{file_id}.mp3", "credits_remaining": credits_to_show}
 
 @app.get("/api/audio/{filename}")
 async def get_audio(filename: str):
