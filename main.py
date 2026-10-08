@@ -187,27 +187,34 @@ def send_otp_email(to_email: str, code: str):
     print(f"🔑 CÓDIGO OTP PARA {to_email}: {code}")
     print(f"=========================================\n")
     
-    sender = os.getenv("EMAIL_SENDER")
-    password = os.getenv("EMAIL_PASSWORD")
+    resend_api_key = os.getenv("RESEND_API_KEY")
     
-    if not sender or not password:
+    if not resend_api_key:
+        print("⚠️ No hay RESEND_API_KEY en .env. Solo se imprimió en consola.")
         return
         
+    import requests
+    
+    headers = {
+        "Authorization": f"Bearer {resend_api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "from": "onboarding@resend.dev", # Resend usa esto por defecto hasta que verifiques tu dominio
+        "to": [to_email],
+        "subject": "Código de acceso a AudioIA",
+        "html": f"<h2>Tu código de acceso es: <strong>{code}</strong></h2><p>Este código expirará en 10 minutos.</p>"
+    }
+    
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        
-        msg = MIMEText(f"Tu código de acceso para AudioIA es: {code}\nEste código expirará en 10 minutos.")
-        msg['Subject'] = 'Código de acceso a AudioIA'
-        msg['From'] = sender
-        msg['To'] = to_email
-
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(sender, password)
-        server.sendmail(sender, [to_email], msg.as_string())
-        server.quit()
+        response = requests.post("https://api.resend.com/emails", headers=headers, json=data)
+        if response.status_code == 200:
+            print("✅ Correo enviado con Resend exitosamente.")
+        else:
+            print(f"❌ Error de Resend: {response.text}")
     except Exception as e:
-        print("Error enviando correo:", e)
+        print("Error enviando correo con Resend:", e)
 
 @app.post("/api/request-otp")
 def request_otp(req: EmailRequest, db: Session = Depends(get_db)):
