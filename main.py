@@ -14,7 +14,7 @@ import fitz  # PyMuPDF
 import stripe
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from passlib.context import CryptContext
@@ -36,8 +36,9 @@ class UserDB(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    credits = Column(Integer, default=5) 
+    credits = Column(Integer, default=5)
+    otp_code = Column(String, nullable=True)
+    otp_expiry = Column(DateTime, nullable=True) 
 
 Base.metadata.create_all(bind=engine)
 
@@ -46,14 +47,7 @@ SECRET_KEY = "tu_clave_super_secreta_para_jwt_cambiar_en_produccion"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 semana
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/verify-otp")
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -69,9 +63,12 @@ def get_db():
         db.close()
 
 # --- MODELOS PYDANTIC ---
-class UserCreate(BaseModel):
+class EmailRequest(BaseModel):
     email: str
-    password: str
+
+class OTPVerify(BaseModel):
+    email: str
+    code: str
 
 class Token(BaseModel):
     access_token: str
@@ -185,23 +182,67 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 # --- RUTAS DE AUTENTICACIÓN ---
-@app.post("/api/register")
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
-    hashed_pw = get_password_hash(user.password)
-    new_user = UserDB(email=user.email, hashed_password=hashed_pw, credits=5)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"message": "Usuario creado exitosamente"}
+def send_otp_email(to_email: str, code: str):
+    print(f"\n=========================================")
+    print(f"🔑 CÓDIGO OTP PARA {to_email}: {code}")
+    print(f"=========================================\n")
+    
+    sender = os.getenv("EMAIL_SENDER")
+    password = os.getenv("EMAIL_PASSWORD")
+    
+    if not sender or not password:
+        return
+        
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        
+        msg = MIMEText(f"Tu código de acceso para AudioIA es: {code}\nEste código expirará en 10 minutos.")
+        msg['Subject'] = 'Código de acceso a AudioIA'
+        msg['From'] = sender
+        msg['To'] = to_email
 
-@app.post("/api/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(UserDB).filter(UserDB.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Email o contraseña incorrectos")
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(sender, password)
+        server.sendmail(sender, [to_email], msg.as_string())
+        server.quit()
+    except Exception as e:
+        print("Error enviando correo:", e)
+
+@app.post("/api/request-otp")
+def request_otp(req: EmailRequest, db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.email == req.email).first()
+    if not user:
+        user = UserDB(email=req.email, credits=5)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+    import random
+    code = str(random.randint(100000, 999999))
+    user.otp_code = code
+    user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    db.commit()
+    
+    send_otp_email(user.email, code)
+    return {"message": "Código enviado si el correo es válido."}
+
+@app.post("/api/verify-otp")
+def verify_otp(req: OTPVerify, db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Usuario no encontrado")
+        
+    if not user.otp_code or user.otp_code != req.code:
+        raise HTTPException(status_code=400, detail="Código incorrecto")
+        
+    if user.otp_expiry and user.otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Código expirado")
+        
+    user.otp_code = None
+    user.otp_expiry = None
+    db.commit()
+    
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
